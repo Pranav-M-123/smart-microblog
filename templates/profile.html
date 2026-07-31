@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ user.username }}'s Profile - AI Microblog</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .profile-header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; border: 1px solid #ccc; }
+        .follow-btn { background-color: #007bff; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .unfollow-btn { background-color: #dc3545; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
+        .post { margin-top: 20px; padding: 20px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);}
+        .analytics { background-color: #e9ecef; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left;}
+        .analytics ul { margin-top: 5px; }
+        a { text-decoration: none; color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="profile-header">
+        <h2>{{ user.username }}</h2>
+        <p>Followers: {{ user.followers.count() }} | Following: {{ user.followed.count() }}</p>
+        
+        {% if user != current_user %}
+            {% if current_user.is_following(user) %}
+                <a href="/unfollow/{{ user.username }}" class="unfollow-btn">Unfollow</a>
+            {% else %}
+                <a href="/follow/{{ user.username }}" class="follow-btn">Follow</a>
+            {% endif %}
+        {% endif %}
+
+        {% if user == current_user %}
+        <div class="analytics">
+            <h4>Custom Analytics</h4>
+            <p><strong>Users you are following who do not follow you back:</strong></p>
+            <ul>
+                {% for non_follower in not_following_back %}
+                    <li><a href="/profile/{{ non_follower.username }}">{{ non_follower.username }}</a></li>
+                {% else %}
+                    <li>Everyone you follow follows you back!</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <a href="/">← Back to Timeline</a>
+
+    <h3>Posts by {{ user.username }}</h3>
+    {% for post in posts %}
+    <div class="post" style="background-color: {{ post.color }};">
+        <h3>AI Analysis: {{ post.mood }}</h3>
+        <p>{{ post.text }}</p>
+    </div>
+    {% else %}
+    <p>This user hasn't posted anything yet.</p>
+    {% endfor %}
+</body>
+</html>

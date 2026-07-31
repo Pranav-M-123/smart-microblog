@@ -15,11 +15,33 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+followers = db.Table('followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
     posts = db.relationship('Post', backref='author', lazy=True)
+    
+    followed = db.relationship(
+        'User', secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+
+    def is_following(self, user):
+        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -60,6 +82,36 @@ def home():
         
     all_posts = Post.query.order_by(Post.id.desc()).all()
     return render_template('index.html', posts=all_posts)
+
+@app.route('/profile/<username>')
+@login_required
+def profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.id.desc()).all()
+    
+    following_list = set(user.followed)
+    followers_list = set(user.followers)
+    not_following_back = following_list - followers_list
+    
+    return render_template('profile.html', user=user, posts=posts, not_following_back=not_following_back)
+
+@app.route('/follow/<username>')
+@login_required
+def follow(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if user != current_user:
+        current_user.follow(user)
+        db.session.commit()
+    return redirect(url_for('profile', username=username))
+
+@app.route('/unfollow/<username>')
+@login_required
+def unfollow(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if user != current_user:
+        current_user.unfollow(user)
+        db.session.commit()
+    return redirect(url_for('profile', username=username))
 
 @app.route('/delete/<int:post_id>', methods=['POST'])
 @login_required
