@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from textblob import TextBlob
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -86,6 +86,14 @@ def home():
     posts = pagination.items
     
     return render_template('index.html', posts=posts, pagination=pagination)
+
+@app.route('/check_posts')
+@login_required
+def check_posts():
+    count = Post.query.count()
+    latest_post = Post.query.order_by(Post.id.desc()).first()
+    latest_id = latest_post.id if latest_post else 0
+    return jsonify({'count': count, 'latest_id': latest_id})
 
 @app.route('/profile/<username>')
 @login_required
