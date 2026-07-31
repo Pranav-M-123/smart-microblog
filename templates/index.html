@@ -14,18 +14,17 @@
     <h1>AI Smart Microblog 🧠</h1>
     <p>Type a post and the AI will analyze your sentiment!</p>
     
-    <!-- The form where users type their posts -->
     <form method="POST">
         <textarea name="content" placeholder="What's on your mind?" required></textarea><br>
         <button type="submit">Publish Post</button>
     </form>
 
-    <!-- This section only shows up if the AI has analyzed a post -->
-    {% if post_data %}
-    <div class="post" style="background-color: {{ post_data.color }};">
-        <h3>AI Analysis: {{ post_data.mood }}</h3>
-        <p>{{ post_data.text }}</p>
+    {% for post in posts %}
+    <div class="post" style="background-color: {{ post.color }};">
+        <h3>AI Analysis: {{ post.mood }}</h3>
+        <p>{{ post.text }}</p>
     </div>
-    {% endif %}
+    {% endfor %}
+    
 </body>
 </html>
