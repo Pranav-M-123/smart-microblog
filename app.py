@@ -61,6 +61,43 @@ def home():
     all_posts = Post.query.order_by(Post.id.desc()).all()
     return render_template('index.html', posts=all_posts)
 
+@app.route('/delete/<int:post_id>', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author.id == current_user.id:
+        db.session.delete(post)
+        db.session.commit()
+    return redirect(url_for('home'))
+
+@app.route('/edit/<int:post_id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author.id != current_user.id:
+        return redirect(url_for('home'))
+        
+    if request.method == 'POST':
+        post.text = request.form.get('content')
+        
+        analysis = TextBlob(post.text)
+        polarity = analysis.sentiment.polarity
+        
+        if polarity > 0.1:
+            post.mood = "Positive 😊"
+            post.color = "#d4edda"
+        elif polarity < -0.1:
+            post.mood = "Negative 😔"
+            post.color = "#f8d7da"
+        else:
+            post.mood = "Neutral 😐"
+            post.color = "#e2e3e5"
+            
+        db.session.commit()
+        return redirect(url_for('home'))
+        
+    return render_template('edit.html', post=post)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
