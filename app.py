@@ -38,4 +38,4 @@ def home():
     return render_template('index.html', post_data=post_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
