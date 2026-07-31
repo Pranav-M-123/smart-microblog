@@ -16,6 +16,8 @@
         .delete-btn { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; font-size: 14px; cursor: pointer; }
         .author-link { color: #333; text-decoration: none; }
         .author-link:hover { text-decoration: underline; }
+        .pagination { margin-top: 30px; text-align: center; }
+        .pagination a { padding: 8px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0 5px; }
     </style>
 </head>
 <body>
@@ -49,6 +51,23 @@
         {% endif %}
     </div>
     {% endfor %}
-    
+
+    <div class="pagination">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('home', page=pagination.prev_num) }}">Previous</a>
+        {% endif %}
+        
+        <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        
+        {% if pagination.has_next %}
+            <a href="{{ url_for('home', page=pagination.next_num) }}">Next</a>
+        {% endif %}
+    </div>
+
+    <script>
+        setTimeout(function(){
+            location.reload();
+        }, 10000);
+    </script>
 </body>
 </html>

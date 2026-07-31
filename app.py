@@ -79,9 +79,13 @@ def home():
         new_post = Post(text=text, mood=mood, color=color, user_id=current_user.id)
         db.session.add(new_post)
         db.session.commit()
+        return redirect(url_for('home'))
         
-    all_posts = Post.query.order_by(Post.id.desc()).all()
-    return render_template('index.html', posts=all_posts)
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.id.desc()).paginate(page=page, per_page=5, error_out=False)
+    posts = pagination.items
+    
+    return render_template('index.html', posts=posts, pagination=pagination)
 
 @app.route('/profile/<username>')
 @login_required
