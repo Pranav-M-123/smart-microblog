@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from textblob import TextBlob
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -18,6 +18,11 @@ login_manager.login_view = 'login'
 followers = db.Table('followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
+
+likes = db.Table('likes',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
 )
 
 class User(UserMixin, db.Model):
@@ -49,10 +54,12 @@ class Post(db.Model):
     mood = db.Column(db.String(50), nullable=False)
     color = db.Column(db.String(20), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    likers = db.relationship('User', secondary=likes, backref=db.backref('liked_posts', lazy='dynamic'), lazy='dynamic')
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 with app.app_context():
     db.create_all()
@@ -62,27 +69,31 @@ with app.app_context():
 def home():
     if request.method == 'POST':
         text = request.form.get('content')
+        if not text.strip():
+            flash('Post content cannot be empty.', 'danger')
+            return redirect(url_for('home'))
         
         analysis = TextBlob(text)
         polarity = analysis.sentiment.polarity
         
         if polarity > 0.1:
             mood = "Positive 😊"
-            color = "#d4edda"
+            color = "rgba(52, 199, 89, 0.05)"
         elif polarity < -0.1:
             mood = "Negative 😔"
-            color = "#f8d7da"
+            color = "rgba(255, 59, 48, 0.05)"
         else:
             mood = "Neutral 😐"
-            color = "#e2e3e5"
+            color = "rgba(142, 142, 147, 0.05)"
             
         new_post = Post(text=text, mood=mood, color=color, user_id=current_user.id)
         db.session.add(new_post)
         db.session.commit()
+        flash('Your post has been published.', 'success')
         return redirect(url_for('home'))
         
     page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.id.desc()).paginate(page=page, per_page=5, error_out=False)
+    pagination = Post.query.order_by(Post.id.desc()).paginate(page=page, per_page=10, error_out=False)
     posts = pagination.items
     
     return render_template('index.html', posts=posts, pagination=pagination)
@@ -94,6 +105,17 @@ def check_posts():
     latest_post = Post.query.order_by(Post.id.desc()).first()
     latest_id = latest_post.id if latest_post else 0
     return jsonify({'count': count, 'latest_id': latest_id})
+
+@app.route('/like/<int:post_id>')
+@login_required
+def like_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if current_user in post.likers:
+        post.likers.remove(current_user)
+    else:
+        post.likers.append(current_user)
+    db.session.commit()
+    return redirect(request.referrer or url_for('home'))
 
 @app.route('/profile/<username>')
 @login_required
@@ -114,6 +136,7 @@ def follow(username):
     if user != current_user:
         current_user.follow(user)
         db.session.commit()
+        flash(f'Now following {user.username}.', 'success')
     return redirect(url_for('profile', username=username))
 
 @app.route('/unfollow/<username>')
@@ -123,6 +146,7 @@ def unfollow(username):
     if user != current_user:
         current_user.unfollow(user)
         db.session.commit()
+        flash(f'Unfollowed {user.username}.', 'info')
     return redirect(url_for('profile', username=username))
 
 @app.route('/delete/<int:post_id>', methods=['POST'])
@@ -132,6 +156,7 @@ def delete_post(post_id):
     if post.author.id == current_user.id:
         db.session.delete(post)
         db.session.commit()
+        flash('Post removed.', 'info')
     return redirect(url_for('home'))
 
 @app.route('/edit/<int:post_id>', methods=['GET', 'POST'])
@@ -143,21 +168,21 @@ def edit_post(post_id):
         
     if request.method == 'POST':
         post.text = request.form.get('content')
-        
         analysis = TextBlob(post.text)
         polarity = analysis.sentiment.polarity
         
         if polarity > 0.1:
             post.mood = "Positive 😊"
-            post.color = "#d4edda"
+            post.color = "rgba(52, 199, 89, 0.05)"
         elif polarity < -0.1:
             post.mood = "Negative 😔"
-            post.color = "#f8d7da"
+            post.color = "rgba(255, 59, 48, 0.05)"
         else:
             post.mood = "Neutral 😐"
-            post.color = "#e2e3e5"
+            post.color = "rgba(142, 142, 147, 0.05)"
             
         db.session.commit()
+        flash('Post successfully updated.', 'success')
         return redirect(url_for('home'))
         
     return render_template('edit.html', post=post)
@@ -168,12 +193,16 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
         
+        if User.query.filter_by(username=username).first():
+            flash('Username is already taken.', 'danger')
+            return redirect(url_for('register'))
+            
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        
         new_user = User(username=username, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
         
+        flash('Account created successfully. Please log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -182,12 +211,14 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('home'))
+        else:
+            flash('Invalid username or password.', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/logout')

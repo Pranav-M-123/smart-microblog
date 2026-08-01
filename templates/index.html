@@ -1,73 +1,207 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Smart Microblog</title>
+    <meta charset="UTF-8">
+    <title>Microblog Studio</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; font-size: 16px;}
-        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;}
-        button:hover { background-color: #218838; }
-        .post { margin-top: 30px; padding: 20px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);}
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .logout-btn { background-color: #dc3545; text-decoration: none; padding: 8px 15px; color: white; border-radius: 5px; }
-        .profile-btn { background-color: #17a2b8; text-decoration: none; padding: 8px 15px; color: white; border-radius: 5px; margin-right: 10px; }
-        .action-btns { margin-top: 10px; display: flex; gap: 10px; }
-        .edit-btn { background-color: #ffc107; color: black; text-decoration: none; padding: 5px 10px; border-radius: 3px; font-size: 14px; }
-        .delete-btn { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; font-size: 14px; cursor: pointer; }
-        .author-link { color: #333; text-decoration: none; }
-        .author-link:hover { text-decoration: underline; }
-        .pagination { margin-top: 30px; text-align: center; }
-        .pagination a { padding: 8px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0 5px; }
+        :root { 
+            --bg: #f5f5f7; 
+            --card-bg: rgba(255, 255, 255, 0.75); 
+            --text: #1d1d1f; 
+            --accent: #0071e3; 
+            --border: rgba(0, 0, 0, 0.06); 
+            --shadow: 0 4px 24px rgba(0,0,0,0.04);
+            --blur: blur(24px);
+        }
+        
+        html { scroll-behavior: smooth; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            max-width: 640px; 
+            margin: 0 auto; 
+            padding: 0 20px 40px 20px; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 20px 0; 
+            margin-bottom: 30px; 
+            border-bottom: 1px solid var(--border); 
+            position: sticky;
+            top: 0;
+            background: rgba(245, 245, 247, 0.8);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            z-index: 100;
+        }
+
+        h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--text); }
+
+        .btn { 
+            background-color: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 980px; 
+            font-size: 14px; 
+            font-weight: 500; 
+            cursor: pointer; 
+            text-decoration: none; 
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
+        }
+
+        .btn:hover { background-color: #0077ed; transform: scale(1.02); }
+
+        .btn-secondary { background-color: rgba(0, 0, 0, 0.05); color: var(--text); }
+        .btn-secondary:hover { background-color: rgba(0, 0, 0, 0.08); transform: scale(1.02); }
+        
+        .btn-danger { background-color: rgba(255, 59, 48, 0.1); color: #ff3b30; }
+        .btn-danger:hover { background-color: #ff3b30; color: white; transform: scale(1.02); }
+
+        .composer-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        textarea { 
+            width: 100%; 
+            height: 90px; 
+            padding: 0; 
+            border: none; 
+            font-size: 17px; 
+            font-family: inherit; 
+            resize: none; 
+            background: transparent; 
+            outline: none; 
+            color: var(--text);
+        }
+
+        .post-card { 
+            background: var(--card-bg); 
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            padding: 24px; 
+            border-radius: 20px; 
+            box-shadow: var(--shadow); 
+            margin-top: 20px; 
+            border: 1px solid var(--border); 
+            
+            opacity: 0;
+            transform: translateY(40px) scale(0.96);
+            transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .post-card.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; color: #86868b; }
+        .author-link { color: var(--text); font-weight: 600; text-decoration: none; }
+        .author-link:hover { color: var(--accent); }
+        .post-content { font-size: 17px; margin: 12px 0; white-space: pre-wrap; line-height: 1.4; }
+
+        .alert { padding: 14px; margin-bottom: 24px; border-radius: 14px; font-size: 14px; }
+        .alert-success { background-color: rgba(52, 199, 89, 0.1); color: #248a3d; }
+        .alert-danger { background-color: rgba(255, 59, 48, 0.1); color: #d70015; }
+        .alert-info { background-color: rgba(0, 113, 227, 0.1); color: #0071e3; }
+
+        .action-row { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.04); }
+        .pagination { margin-top: 40px; text-align: center; display: flex; justify-content: center; gap: 12px; font-size: 14px; color: #86868b; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>AI Smart Microblog 🧠</h1>
-        <div>
-            <a href="/profile/{{ current_user.username }}" class="profile-btn">My Profile</a>
-            <a href="/logout" class="logout-btn">Logout</a>
+    <div class="nav-bar">
+        <h1>Microblog</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="/profile/{{ current_user.username }}" class="btn btn-secondary">Profile</a>
+            <a href="/logout" class="btn btn-secondary">Log out</a>
         </div>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for cat, msg in messages %}
+                <div class="alert alert-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     
-    <p>Welcome, {{ current_user.username }}! Type a post and the AI will analyze your sentiment.</p>
-    
-    <form method="POST">
-        <textarea name="content" placeholder="What's on your mind?" required></textarea><br>
-        <button type="submit">Publish Post</button>
-    </form>
+    <div class="composer-card">
+        <form method="POST">
+            <textarea name="content" placeholder="What's happening?" required></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+                <span style="font-size: 13px; color: #86868b;">AI Analysis Enabled</span>
+                <button type="submit" class="btn">Publish</button>
+            </div>
+        </form>
+    </div>
 
     {% for post in posts %}
-    <div class="post" style="background-color: {{ post.color }};">
-        <h3><a href="/profile/{{ post.author.username }}" class="author-link">{{ post.author.username }}</a> - AI Analysis: {{ post.mood }}</h3>
-        <p>{{ post.text }}</p>
-        
-        {% if post.author.id == current_user.id %}
-        <div class="action-btns">
-            <a href="/edit/{{ post.id }}" class="edit-btn">Edit</a>
-            <form action="/delete/{{ post.id }}" method="POST" style="display:inline;">
-                <button type="submit" class="delete-btn">Delete</button>
-            </form>
+    <div class="post-card scroll-reveal" style="background-color: {{ post.color }};">
+        <div class="post-header">
+            <span><a href="/profile/{{ post.author.username }}" class="author-link">{{ post.author.username }}</a></span>
+            <span style="font-weight: 500;">{{ post.mood }}</span>
         </div>
-        {% endif %}
+        <div class="post-content">{{ post.text }}</div>
+        
+        <div class="action-row">
+            <a href="/like/{{ post.id }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">
+                ❤️ {{ post.likers.count() }}
+            </a>
+            {% if post.author.id == current_user.id %}
+                <a href="/edit/{{ post.id }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">Edit</a>
+                <form action="/delete/{{ post.id }}" method="POST" style="display:inline; margin:0;">
+                    <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 13px;">Delete</button>
+                </form>
+            {% endif %}
+        </div>
     </div>
     {% endfor %}
 
-    <div class="pagination">
+    <div class="pagination scroll-reveal">
         {% if pagination.has_prev %}
-            <a href="{{ url_for('home', page=pagination.prev_num) }}">Previous</a>
+            <a href="{{ url_for('home', page=pagination.prev_num) }}" class="btn btn-secondary">Previous</a>
         {% endif %}
-        
-        <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
-        
+        <span style="align-self: center;">Page {{ pagination.page }} of {{ pagination.pages }}</span>
         {% if pagination.has_next %}
-            <a href="{{ url_for('home', page=pagination.next_num) }}">Next</a>
+            <a href="{{ url_for('home', page=pagination.next_num) }}" class="btn btn-secondary">Next</a>
         {% endif %}
     </div>
 
     <script>
-        setTimeout(function(){
-            location.reload();
-        }, 10000);
+        document.addEventListener("DOMContentLoaded", function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+        });
+
+        setInterval(() => {
+            fetch('/check_posts').then(res => res.json()).then(data => {
+                window._initialCount = window._initialCount ?? data.count;
+                window._initialLatest = window._initialLatest ?? data.latest_id;
+                if (data.count !== window._initialCount || data.latest_id !== window._initialLatest) {
+                    location.reload();
+                }
+            }).catch(() => {});
+        }, 5000);
     </script>
 </body>
 </html>

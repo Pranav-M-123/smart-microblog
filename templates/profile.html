@@ -1,56 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{{ user.username }}'s Profile - AI Microblog</title>
+    <meta charset="UTF-8">
+    <title>{{ user.username }} — Profile</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-        .profile-header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; border: 1px solid #ccc; }
-        .follow-btn { background-color: #007bff; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
-        .unfollow-btn { background-color: #dc3545; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; }
-        .post { margin-top: 20px; padding: 20px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);}
-        .analytics { background-color: #e9ecef; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: left;}
-        .analytics ul { margin-top: 5px; }
-        a { text-decoration: none; color: #007bff; }
+        :root { --bg: #f5f5f7; --card-bg: rgba(255, 255, 255, 0.75); --text: #1d1d1f; --accent: #0071e3; --border: rgba(0, 0, 0, 0.06); --shadow: 0 4px 24px rgba(0,0,0,0.04); --blur: blur(24px); }
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; background-color: var(--bg); color: var(--text); max-width: 640px; margin: 0 auto; padding: 40px 20px; -webkit-font-smoothing: antialiased; }
+        
+        .profile-card { background: var(--card-bg); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); padding: 40px; border-radius: 24px; text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border); animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .btn { background-color: var(--accent); color: white; border: none; padding: 10px 24px; border-radius: 980px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-flex; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .btn:hover { transform: scale(1.02); }
+        .btn-danger { background-color: rgba(255, 59, 48, 0.1); color: #ff3b30; }
+        .btn-danger:hover { background-color: #ff3b30; color: white; }
+
+        .post-card { background: var(--card-bg); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); padding: 24px; border-radius: 20px; box-shadow: var(--shadow); margin-top: 20px; border: 1px solid var(--border); opacity: 0; transform: translateY(40px) scale(0.96); transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .post-card.visible { opacity: 1; transform: translateY(0) scale(1); }
+        
+        .analytics-box { background: rgba(0, 0, 0, 0.03); border: 1px solid var(--border); padding: 20px; border-radius: 16px; margin-top: 30px; text-align: left; font-size: 14px; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="profile-header">
-        <h2>{{ user.username }}</h2>
-        <p>Followers: {{ user.followers.count() }} | Following: {{ user.followed.count() }}</p>
+    <div class="profile-card">
+        <h2 style="margin-top:0; font-size: 32px; font-weight: 600; letter-spacing: -0.015em;">{{ user.username }}</h2>
+        <p style="color: #86868b; font-size: 15px; margin-bottom: 24px;">
+            Followers: {{ user.followers.count() }} &bull; Following: {{ user.followed.count() }} &bull; Posts: {{ user.posts | length }}
+        </p>
         
         {% if user != current_user %}
             {% if current_user.is_following(user) %}
-                <a href="/unfollow/{{ user.username }}" class="unfollow-btn">Unfollow</a>
+                <a href="/unfollow/{{ user.username }}" class="btn btn-danger">Unfollow</a>
             {% else %}
-                <a href="/follow/{{ user.username }}" class="follow-btn">Follow</a>
+                <a href="/follow/{{ user.username }}" class="btn">Follow</a>
             {% endif %}
         {% endif %}
 
         {% if user == current_user %}
-        <div class="analytics">
-            <h4>Custom Analytics</h4>
-            <p><strong>Users you are following who do not follow you back:</strong></p>
-            <ul>
-                {% for non_follower in not_following_back %}
-                    <li><a href="/profile/{{ non_follower.username }}">{{ non_follower.username }}</a></li>
+        <div class="analytics-box">
+            <strong style="display: block; margin-bottom: 12px; font-weight: 600;">Following you back</strong>
+            <ul style="margin: 0; padding-left: 20px; color: #1d1d1f; line-height: 1.6;">
+                {% for non in not_following_back %}
+                    <li><a href="/profile/{{ non.username }}">{{ non.username }}</a></li>
                 {% else %}
-                    <li>Everyone you follow follows you back!</li>
+                    <li><span style="color: #86868b;">All accounts you follow follow you back.</span></li>
                 {% endfor %}
             </ul>
         </div>
         {% endif %}
     </div>
 
-    <a href="/">← Back to Timeline</a>
+    <p style="margin-top: 30px; text-align: center;"><a href="/">&larr; Back to timeline</a></p>
 
-    <h3>Posts by {{ user.username }}</h3>
+    <h3 style="font-size: 20px; font-weight: 600; margin-top: 40px; margin-bottom: 20px;">Activity</h3>
     {% for post in posts %}
-    <div class="post" style="background-color: {{ post.color }};">
-        <h3>AI Analysis: {{ post.mood }}</h3>
-        <p>{{ post.text }}</p>
+    <div class="post-card scroll-reveal" style="background-color: {{ post.color }};">
+        <div style="font-size: 13px; color: #86868b; margin-bottom: 8px; font-weight: 500;">{{ post.mood }}</div>
+        <div style="font-size: 17px; line-height: 1.4;">{{ post.text }}</div>
     </div>
     {% else %}
-    <p>This user hasn't posted anything yet.</p>
+    <p style="color: #86868b; text-align: center;">No posts available.</p>
     {% endfor %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+        });
+    </script>
 </body>
 </html>
